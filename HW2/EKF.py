@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Renderer import Renderer
+import scipy
+import pdb
 
 
 class EKF(object):
@@ -135,16 +137,18 @@ class EKF(object):
         H = np.asarray([[2 * self.mu[0], 2 * self.mu[1], 0],
                         [- self.mu[1] / (self.mu[0] ** 2 + self.mu[1] ** 2),
                          self.mu[0] / (self.mu[0] ** 2 + self.mu[1] ** 2), 0]])
-
         K = self.Sigma @ H.T @ np.linalg.inv(H @ self.Sigma @ H.T + self.Q)
 
         h_mu = np.zeros(2)
         h_mu[0] = self.mu[0] ** 2 + self.mu[1] ** 2
-        h_mu[1] = np.arctan(self.mu[1] / self.mu[0])
+        h_mu[1] = self.angleWrap(np.arctan2(self.mu[1], self.mu[0]))
 
-        self.mu = self.mu + K @ (z - h_mu)
 
-        self.Sigma = self.Sigma - K @ H @ self.Sigma
+        new_mu = self.mu + K @ (z - h_mu)
+        self.mu = new_mu
+
+        new_Sigma = self.Sigma - K @ H @ self.Sigma
+        self.Sigma = new_Sigma
 
 
     def run(self, U, Z):

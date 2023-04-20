@@ -48,10 +48,11 @@ if __name__ == '__main__':
         sys.exit(0)
 
     R = np.zeros((2, 2))
-    R[0, 0] = 0.25*1E-1
-    R[1, 1] = (np.radians(4))*1E-1
+    # R[0, 0] = 0.25 * 0.1
+    R[0, 0] = 0.1 * 0.1
+    R[1, 1] = (np.radians(4)) * 0.1
 
-    Q = np.array([[1.0, 0.0], [0.0, np.radians(1)]])*1E-1
+    Q = np.array([[1.0, 0.0], [0.0, np.radians(1)]]) * 0.1
     (U, Z, XYT) = readData(sys.argv[1], sys.argv[2], sys.argv[3])
 
     # Initialize the mean at the initial ground-truth pose
