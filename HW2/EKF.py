@@ -141,15 +141,14 @@ class EKF(object):
 
         h_mu = np.zeros(2)
         h_mu[0] = self.mu[0] ** 2 + self.mu[1] ** 2
-        h_mu[1] = self.angleWrap(np.arctan2(self.mu[1], self.mu[0]))
+        h_mu[1] = np.arctan2(self.mu[1], self.mu[0])
 
+        diff = z - h_mu
+        diff[1] = self.angleWrap(diff[1])
 
-        new_mu = self.mu + K @ (z - h_mu)
-        self.mu = new_mu
+        self.mu = self.mu + K @ diff
 
-        new_Sigma = self.Sigma - K @ H @ self.Sigma
-        self.Sigma = new_Sigma
-
+        self.Sigma = self.Sigma - K @ H @ self.Sigma
 
     def run(self, U, Z):
         """Main EKF loop that iterates over control and measurement data.
