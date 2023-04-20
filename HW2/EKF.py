@@ -97,7 +97,30 @@ class EKF(object):
             robot traveled and its change in orientation.
         """
         # Your code goes here
-        pass
+
+        # computer F and G
+        F = np.asarray([[1, 0, - u[0] * np.sin(self.mu[2])],
+                        [0, 1, u[0] * np.cos(self.mu[2])],
+                        [0, 0, 1]])
+        G = np.asarray([[np.cos(self.mu[2]), 0],
+                        [np.sin(self.mu[2]), 0],
+                        [0, 1]])
+
+        # Update Sigma
+        new_Sigma = np.zeros([3,3])
+        new_Sigma = F @ self.Sigma @ F.T + G @ self.R @ G.T
+
+        self.Sigma = new_Sigma
+
+        # Update mu
+        new_mu = np.zeros(3)
+        new_mu[0] = self.mu[0] + u[0] * np.cos(self.mu[2])
+        new_mu[1] = self.mu[1] + u[0] * np.sin(self.mu[2])
+        new_mu[2] = self.mu[2] + u[1]
+
+        self.mu = new_mu
+
+
 
     def update(self, z):
         """Perform the EKF update step based on observation z.
@@ -109,7 +132,20 @@ class EKF(object):
             the robot and the sensor, and the robot's heading.
         """
         # Your code goes here
-        pass
+        H = np.asarray([[2 * self.mu[0], 2 * self.mu[1], 0],
+                        [- self.mu[1] / (self.mu[0] ** 2 + self.mu[1] ** 2),
+                         self.mu[0] / (self.mu[0] ** 2 + self.mu[1] ** 2), 0]])
+
+        K = self.Sigma @ H.T @ np.linalg.inv(H @ self.Sigma @ H.T + self.Q)
+
+        h_mu = np.zeros(2)
+        h_mu[0] = self.mu[0] ** 2 + self.mu[1] ** 2
+        h_mu[1] = np.arctan(self.mu[1] / self.mu[0])
+
+        self.mu = self.mu + K @ (z - h_mu)
+
+        self.Sigma = self.Sigma - K @ H @ self.Sigma
+
 
     def run(self, U, Z):
         """Main EKF loop that iterates over control and measurement data.
