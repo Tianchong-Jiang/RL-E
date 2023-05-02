@@ -76,10 +76,16 @@ class Laser(object):
         # Compute zstar using ray tracing
         zstar, coords = self.rayTracing(x[0], x[1], x[2], self.Angles, gridmap)
 
+        # Compute the likelihood of each beam
+        probHit = self.pHit * self.normal.pdf(z - zstar)
+        probShort = self.pShort * self.exponential.pdf(zstar)
+        probMax = self.pMax * (zstar == self.zMax)
+        probRand = self.pRand * (zstar < self.zMax)
+
         # Compute the likelihood of the scan
-        import pdb; pdb.set_trace()
+        likelihood = np.prod(probHit + probShort + probMax + probRand, axis=1)
 
-
+        return likelihood
 
     def getXY(self, range, bearing):
         """Function that converts the range and bearing to

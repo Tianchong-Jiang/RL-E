@@ -236,11 +236,11 @@ class PF(object):
         keepindex = np.ones(self.numParticles, dtype=bool)
         for i in range(self.numParticles):
             if self.gridmap.inCollision(self.particles[0, i], self.particles[1, i]):
-                # keepindex[i] = False
-                self.particles[0, i] = self.particles[0, i] - ut1[i] / ut2[i] * (np.sin(self.particles[2, i] + ut2[i] * deltat) - np.sin(self.particles[2, i]))
-                self.particles[1, i] = self.particles[1, i] - ut1[i] / ut2[i] * (-np.cos(self.particles[2, i] + ut2[i] * deltat) + np.cos(self.particles[2, i]))
-                self.particles[2, i] = self.particles[2, i] - ut2[i] * deltat - gammat[i] * deltat
-        # self.particles = self.particles[:, keepindex]
+                keepindex[i] = False
+                # self.particles[0, i] = self.particles[0, i] - ut1[i] / ut2[i] * (np.sin(self.particles[2, i] + ut2[i] * deltat) - np.sin(self.particles[2, i]))
+                # self.particles[1, i] = self.particles[1, i] - ut1[i] / ut2[i] * (-np.cos(self.particles[2, i] + ut2[i] * deltat) + np.cos(self.particles[2, i]))
+                # self.particles[2, i] = self.particles[2, i] - ut2[i] * deltat - gammat[i] * deltat
+        self.particles = self.particles[:, keepindex]
 
         # Unwrapping orientation so that it is between -pi and pi
         self.particles[2, :] = np.unwrap(self.particles[2, :])
@@ -252,7 +252,11 @@ class PF(object):
 
         # TODO: Your code goes here
         # The np.random.choice function may be useful
-        pass
+
+        # Resampling
+        indices = np.arange(0, self.particles.shape[-1])
+        indices = np.random.choice(indices, self.numParticles, p=self.weights / np.sum(self.weights))
+        self.particles = self.particles[:, indices]
 
     def update(self, ranges):
         """
@@ -263,7 +267,7 @@ class PF(object):
             ranges :    Array of LIDAR ranges (numpy.array)
         """
         # TODO: Your code goes here
-        pass
+        self.weights = self.laser.scanProbability(ranges, self.particles, self.gridmap)
 
     def run(self, U, Ranges, deltat, X0, XGT, filename):
         """
@@ -293,7 +297,10 @@ class PF(object):
             ranges = Ranges[:, k]
 
             # TODO: Your code goes here
+            self.update(ranges)
+            self.resample()
             self.prediction(u, deltat)
+
 
             if self.visualize:
                 if XGT is None:
