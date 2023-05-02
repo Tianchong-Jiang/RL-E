@@ -217,7 +217,33 @@ class PF(object):
         #       (drawing n samples is faster than drawing 1 sample n times)
         #       and if none of the estimated poses are not in collision, assume
         #       that the robot doesn't move from t-1 to t.
-        pass
+
+        # Getting Gaussian noise for each self.alpha and time step
+        vt1 = np.random.normal(0, self.Alpha[0] * (u[0] ** 2) + self.Alpha[1] * (u[1] ** 2), self.numParticles)
+        vt2 = np.random.normal(0, self.Alpha[2] * (u[0] ** 2) + self.Alpha[3] * (u[1] ** 2), self.numParticles)
+        gammat = np.random.normal(0, self.Alpha[4] * (u[0] ** 2) + self.Alpha[5] * (u[1] ** 2), self.numParticles)
+
+        # Adding noise to movement
+        ut1 = u[0] + vt1
+        ut2 = u[1] + vt2
+
+        # Calculating new position and orientation of particles
+        self.particles[0, :] = self.particles[0, :] + ut1 / ut2 * (np.sin(self.particles[2, :] + ut2 * deltat) - np.sin(self.particles[2, :]))
+        self.particles[1, :] = self.particles[1, :] + ut1 / ut2 * (-np.cos(self.particles[2, :] + ut2 * deltat) + np.cos(self.particles[2, :]))
+        self.particles[2, :] = self.particles[2, :] + ut2 * deltat + gammat * deltat
+
+        # Rejecting samples that are in collision
+        keepindex = np.ones(self.numParticles, dtype=bool)
+        for i in range(self.numParticles):
+            if self.gridmap.inCollision(self.particles[0, i], self.particles[1, i]):
+                # keepindex[i] = False
+                self.particles[0, i] = self.particles[0, i] - ut1[i] / ut2[i] * (np.sin(self.particles[2, i] + ut2[i] * deltat) - np.sin(self.particles[2, i]))
+                self.particles[1, i] = self.particles[1, i] - ut1[i] / ut2[i] * (-np.cos(self.particles[2, i] + ut2[i] * deltat) + np.cos(self.particles[2, i]))
+                self.particles[2, i] = self.particles[2, i] - ut2[i] * deltat - gammat[i] * deltat
+        # self.particles = self.particles[:, keepindex]
+
+        # Unwrapping orientation so that it is between -pi and pi
+        self.particles[2, :] = np.unwrap(self.particles[2, :])
 
     def resample(self):
         """
@@ -238,7 +264,7 @@ class PF(object):
         """
         # TODO: Your code goes here
         pass
-    
+
     def run(self, U, Ranges, deltat, X0, XGT, filename):
         """
             The main loop that runs the particle filter
@@ -267,7 +293,8 @@ class PF(object):
             ranges = Ranges[:, k]
 
             # TODO: Your code goes here
-            
+            self.prediction(u, deltat)
+
             if self.visualize:
                 if XGT is None:
                     self.render(ranges, deltat, None)

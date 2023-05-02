@@ -72,7 +72,13 @@ class Laser(object):
         # TODO: Your code goes here
         # Implement the algorithm given in Table 6.1
         # You are provided with an implementation (albeit slow) of ray tracing below
-        pass
+
+        # Compute zstar using ray tracing
+        zstar, coords = self.rayTracing(x[0], x[1], x[2], self.Angles, gridmap)
+
+        # Compute the likelihood of the scan
+        import pdb; pdb.set_trace()
+
 
 
     def getXY(self, range, bearing):
