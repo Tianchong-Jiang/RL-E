@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Renderer import Renderer
-import scipy
-import pdb
 
 
 class EKF(object):
