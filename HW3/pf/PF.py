@@ -256,7 +256,9 @@ class PF(object):
         # Resampling
         indices = np.arange(0, self.particles.shape[-1])
         indices = np.random.choice(indices, self.numParticles, p=self.weights / np.sum(self.weights))
+
         self.particles = self.particles[:, indices]
+        self.weights = self.weights[indices]
 
     def update(self, ranges):
         """
@@ -297,10 +299,12 @@ class PF(object):
             ranges = Ranges[:, k]
 
             # TODO: Your code goes here
+            self.prediction(u, deltat)
             self.update(ranges)
             self.resample()
-            self.prediction(u, deltat)
 
+            if not self.weights.shape[0] == self.particles.shape[1]:
+                import pdb; pdb.set_trace()
 
             if self.visualize:
                 if XGT is None:
