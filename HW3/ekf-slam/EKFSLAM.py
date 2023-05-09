@@ -169,7 +169,7 @@ class EKFSLAM(object):
         G[0, 0] = 1
         G[0, 2] = - z[0] * np.sin(self.mu[2]) - z[1] * np.cos(self.mu[2])
         G[1, 1] = 1
-        G[1, 2] = z[0] * - np.cos(self.mu[2]) + z[1] * np.sin(self.mu[2])
+        G[1, 2] = z[0] *  np.cos(self.mu[2]) + z[1] * - np.sin(self.mu[2])
 
         # Augment the covariance
         length = self.Sigma.shape[0]
