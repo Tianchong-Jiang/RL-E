@@ -38,7 +38,7 @@ class EKFSLAM(object):
         """
         self.mu = mu
         self.Sigma = Sigma
-        self.R = np.asarray([[R[0,0], 0, 0], [0, R[0, 0], 0], [0, 0, R[1, 1]]])
+        self.R = np.asarray([[R[0, 0], 0, 0], [0, R[0, 0], 0], [0, 0, R[1, 1]]])
         self.Q = Q
 
         self.XGT = XGT
@@ -78,15 +78,15 @@ class EKFSLAM(object):
 
         # TODO: Your code goes here
 
+        # Compute Jacobian of motion model
+        F = np.eye(3)
+        F[0, 2] = - u[0] * np.sin(self.mu[2])
+        F[1, 2] = u[0] * np.cos(self.mu[2])
+
         # Predict the mean
         self.mu[0] = self.mu[0] + u[0] * np.cos(self.mu[2])
         self.mu[1] = self.mu[1] + u[0] * np.sin(self.mu[2])
         self.mu[2] = self.angleWrap(self.mu[2] + u[1])
-
-        # Compute Jacobian of motion model
-        F = np.eye(3)
-        F[0, 2] = -u[0] * np.sin(self.mu[2])
-        F[1, 2] = u[0] * np.cos(self.mu[2])
 
         # Predict the covariance
         self.Sigma[0:3, 0:3] = F @ self.Sigma[0:3, 0:3] @ F.T + self.R
@@ -111,45 +111,30 @@ class EKFSLAM(object):
         pos = self.mapLUT[id]
 
         # Compute Jacobian of measurement model
-        H = np.zeros((2, 3))
-        H[0, 0] = -np.cos(self.mu[2])
-        H[0, 1] = -np.sin(self.mu[2])
-        H[0, 2] = -z[0] * np.sin(self.mu[2]) + z[1] * np.cos(self.mu[2])
+        H = np.zeros((2, self.mu.shape[0]))
+        H[0, 0] = - np.cos(self.mu[2])
+        H[0, 1] = - np.sin(self.mu[2])
+        H[0, 2] = - np.sin(self.mu[2]) * (self.mu[pos] - self.mu[0]) + np.cos(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
         H[1, 0] = np.sin(self.mu[2])
-        H[1, 1] = -np.cos(self.mu[2])
-        H[1, 2] = z[0] * np.cos(self.mu[2]) + z[1] * np.sin(self.mu[2])
+        H[1, 1] = - np.cos(self.mu[2])
+        H[1, 2] = - np.cos(self.mu[2]) * (self.mu[pos] - self.mu[0]) - np.sin(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
+
+        H[0, pos] = np.cos(self.mu[2])
+        H[0, pos + 1] = np.sin(self.mu[2])
+        H[1, pos] = - np.sin(self.mu[2])
+        H[1, pos + 1] = np.cos(self.mu[2])
 
         # Compute Kalman gain
-        K = self.Sigma[0:3, 0:3] @ H.T  @ np.linalg.inv(H @ self.Sigma[0:3, 0:3] @ H.T + self.Q)
+        K = self.Sigma @ H.T  @ np.linalg.inv(H @ self.Sigma @ H.T + self.Q)
 
         # Update the mean
         h_mu = np.zeros(2)
         h_mu[0] = np.cos(self.mu[2]) * (self.mu[pos] - self.mu[0]) + np.sin(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
-        h_mu[1] = -np.sin(self.mu[2]) * (self.mu[pos] - self.mu[0]) + np.cos(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
-        self.mu[0:3] = self.mu[0:3] + K @ (z - h_mu)
+        h_mu[1] = - np.sin(self.mu[2]) * (self.mu[pos] - self.mu[0]) + np.cos(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
+        self.mu = self.mu + K @ (z - h_mu)
 
         # Update the covariance
-        self.Sigma[0:3, 0:3] = (np.eye(3) - K @ H) @ self.Sigma[0:3, 0:3]
-
-        # H = np.zeros((2, self.mu.shape[0]))
-        # H[0, 0] = -np.cos(self.mu[2])
-        # H[0, 1] = -np.sin(self.mu[2])
-        # H[0, 2] = -np.sin(self.mu[2]) * (z[0] - self.mu[0]) + np.cos(self.mu[2])*(z[1] - self.mu[1])
-        # H[0, midx] = np.cos(self.mu[2])
-        # H[0, midx + 1] = np.sin(self.mu[2])
-
-        # H[1, 0] = np.sin(self.mu[2])
-        # H[1, 1] = -np.cos(self.mu[2])
-        # H[1, 2] = -np.cos(self.mu[2]) * (z[0] - self.mu[0]) - np.sin(self.mu[2])*(z[1] - self.mu[1])
-        # H[1, midx] = -np.sin(self.mu[2])
-        # H[1, midx] = np.cos(self.mu[2])
-
-        # K = self.Sigma@H.transpose()@np.linalg.inv(H@self.Sigma@H.transpose() + self.Q)
-        # rotation_mat = np.matrix([[np.cos(self.mu[2]), np.sin(self.mu[2])], [-np.sin(self.mu[2]), np.cos(self.mu[2])]])
-        # z_pred = np.asarray(rotation_mat@(self.mu[midx:midx+2] - self.mu[0:2])).reshape(-1)
-        # self.mu = self.mu + K@(z - z_pred)
-        # self.Sigma = (np.eye( self.mu.shape[0]) - K@H)@self.Sigma
-
+        self.Sigma = (np.eye(self.mu.shape[0]) - K @ H) @ self.Sigma
 
     def augmentState(self, z, id):
         """Augment the state vector to include the new landmark
@@ -226,15 +211,18 @@ class EKFSLAM(object):
         #
         # self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Zt, self.mapLUT)
 
+        self.XE = np.zeros((2, U.shape[1]))
         for t in range(U.shape[1]):
             self.prediction(U[1:, t])
+            self.XE[:, t] = self.mu[:2]
             self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t-1], self.mapLUT)
-            # import pdb; pdb.set_trace()
             for j in range(Z.shape[1]):
                 if Z[0, j] == t:
-                    self.update(Z[2:4, j], Z[1, j])
                     self.augmentState(Z[2:4, j], Z[1, j])
+                    self.update(Z[2:4, j], Z[1, j])
             self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t], self.mapLUT)
-            # import pdb; pdb.set_trace()
+
+        # render trajectory
+        self.renderer.drawTrajectory(self.XE, self.XGT[1:4, :])
 
 

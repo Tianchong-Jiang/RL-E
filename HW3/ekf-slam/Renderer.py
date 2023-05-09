@@ -350,6 +350,9 @@ class Renderer(object):
         self.ax.plot(XYGT[0, :], XYGT[1, :], color=self.gtColor,
                      linestyle='dashed')
 
+        # save figure to file
+        self.fig.savefig('ekf.png')
+
     def render(self, mu, Sigma, gt, z, mapLUT):
         """Render the current pose estimate.
 
