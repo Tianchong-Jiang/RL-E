@@ -377,7 +377,6 @@ class Renderer(object):
         else:
             self.updateTriangle(self.gtTriangle, gt[0:2], gt[2])
 
-        # import pdb; pdb.set_trace()
         if not self.ellipse:
             self.ellipse = self.drawEllipse(mu[0:2], Sigma[0:2, 0:2])
             self.ax.add_patch(self.ellipse)
@@ -409,7 +408,6 @@ class Renderer(object):
                 circle = self.drawCircle(mu[idx:idx+2], self.estColor)
                 self.ax.add_artist(circle)
                 self.estMapCircles[k] = circle
-
                 ellipse = self.drawEllipse(mu[idx:idx+2], Sigma[idx:idx+2, idx:idx+2])
                 self.ax.add_patch(ellipse)
                 self.estMapEllipses[k] = ellipse

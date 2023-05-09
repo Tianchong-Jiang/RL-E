@@ -145,8 +145,8 @@ class EKFSLAM(object):
             return
 
         # Add the landmark to LUT
-
-        self.mapLUT[str(int(id))] = (self.mu.shape[0] - 1) * 0.5
+        mu_length = int(self.mu.shape[0])
+        self.mapLUT[str(int(id))] = mu_length
 
         # Compute the landmark position in the world frame
         x = self.mu[0] + z[0] * np.cos(self.mu[2]) - z[1] * np.sin(self.mu[2])
@@ -156,8 +156,12 @@ class EKFSLAM(object):
         self.mu = np.append(self.mu, np.array((x, y)))
 
         # Compute G
-        G = np.asarray([[1, 0, z[0] * np.sin(self.mu[2]) + z[1] * np.cos(self.mu[2])],
-                        [0, 1, z[0] * - np.cos(self.mu[2]) + z[1] * np.sin(self.mu[2])]])
+        # import pdb; pdb.set_trace()
+        G = np.zeros((2, mu_length))
+        G[0, 0] = 1
+        G[0, 2] = - z[0] * np.sin(self.mu[2]) - z[1] * np.cos(self.mu[2])
+        G[1, 1] = 1
+        G[1, 2] = z[0] * - np.cos(self.mu[2]) + z[1] * np.sin(self.mu[2])
 
         # Augment the covariance
         length = self.Sigma.shape[0]
@@ -166,6 +170,7 @@ class EKFSLAM(object):
         newSigma[-2:, -2:] = G @ self.Sigma @ G.T + self.Q
         newSigma[-2:, :-2] = G @ self.Sigma
         newSigma[:-2, -2:] = self.Sigma @ G.T
+        self.Sigma = newSigma
 
 
 
