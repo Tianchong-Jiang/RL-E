@@ -23,7 +23,7 @@ if __name__ == '__main__':
     #     sys.exit(2)
     parser = argparse.ArgumentParser(description="Particle Filter-based Localization")
     parser.add_argument('pickle_file', help='Path to pickle file')
-    parser.add_argument('--numParticles', type=int, default=1000, help='Number of particles')
+    parser.add_argument('-n', '--numParticles', type=int, default=1000, help='Number of particles')
     parser.add_argument('--sparsity', type=int, default=5, help='Factor for downsampling LIDAR')
     parser.add_argument('-a', '--animate', action='store_true', help="Generate an animation of the filter")
     args = parser.parse_args()

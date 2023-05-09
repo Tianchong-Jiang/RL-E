@@ -233,14 +233,26 @@ class PF(object):
         self.particles[2, :] = self.particles[2, :] + ut2 * deltat + gammat * deltat
 
         # Rejecting samples that are in collision
-        keepindex = np.ones(self.numParticles, dtype=bool)
+        # keepindex = np.ones(self.numParticles, dtype=bool)
+        # for i in range(self.numParticles):
+        #     if self.gridmap.inCollision(self.particles[0, i], self.particles[1, i]):
+        #         keepindex[i] = False
+        #         # self.particles[0, i] = self.particles[0, i] - ut1[i] / ut2[i] * (np.sin(self.particles[2, i] + ut2[i] * deltat) - np.sin(self.particles[2, i]))
+        #         # self.particles[1, i] = self.particles[1, i] - ut1[i] / ut2[i] * (-np.cos(self.particles[2, i] + ut2[i] * deltat) + np.cos(self.particles[2, i]))
+        #         # self.particles[2, i] = self.particles[2, i] - ut2[i] * deltat - gammat[i] * deltat
+        # self.particles = self.particles[:, keepindex]
+
+        (m, n) = self.gridmap.getShape()
+
         for i in range(self.numParticles):
-            if self.gridmap.inCollision(self.particles[0, i], self.particles[1, i]):
-                keepindex[i] = False
-                # self.particles[0, i] = self.particles[0, i] - ut1[i] / ut2[i] * (np.sin(self.particles[2, i] + ut2[i] * deltat) - np.sin(self.particles[2, i]))
-                # self.particles[1, i] = self.particles[1, i] - ut1[i] / ut2[i] * (-np.cos(self.particles[2, i] + ut2[i] * deltat) + np.cos(self.particles[2, i]))
-                # self.particles[2, i] = self.particles[2, i] - ut2[i] * deltat - gammat[i] * deltat
-        self.particles = self.particles[:, keepindex]
+            theta = np.random.uniform(-np.pi, np.pi)
+            inCollision = True
+            while self.gridmap.inCollision(self.particles[0, i], self.particles[1, i]):
+                x = np.random.uniform(0, (n-1)*self.gridmap.xres)
+                y = np.random.uniform(0, (m-1)*self.gridmap.yres)
+                self.particles[:, i] = np.array([[x, y, theta]])
+
+        self.weights = (1./self.numParticles) * np.ones((1, self.numParticles))
 
         # Unwrapping orientation so that it is between -pi and pi
         self.particles[2, :] = np.unwrap(self.particles[2, :])
@@ -259,6 +271,10 @@ class PF(object):
 
         self.particles = self.particles[:, indices]
         self.weights = self.weights[indices]
+
+        # Adding Gaussian noise to particles
+        self.particles[0, :] = self.particles[0, :] + np.random.normal(0, 0.1, self.numParticles)
+        self.particles[1, :] = self.particles[1, :] + np.random.normal(0, 0.1, self.numParticles)
 
     def update(self, ranges):
         """
