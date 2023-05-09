@@ -106,7 +106,7 @@ class EKFSLAM(object):
         """
         # TODO: Your code goes here
 
-        # Compute Jacobian of measurement model
+        # # Compute Jacobian of measurement model
         H = np.zeros((2, 3))
         H[0, 0] = -np.cos(self.mu[2])
         H[0, 1] = -np.sin(self.mu[2])
@@ -156,7 +156,6 @@ class EKFSLAM(object):
         self.mu = np.append(self.mu, np.array((x, y)))
 
         # Compute G
-        # import pdb; pdb.set_trace()
         G = np.zeros((2, mu_length))
         G[0, 0] = 1
         G[0, 2] = - z[0] * np.sin(self.mu[2]) - z[1] * np.cos(self.mu[2])
@@ -206,11 +205,14 @@ class EKFSLAM(object):
         # self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Zt, self.mapLUT)
 
         for t in range(U.shape[1]):
-            self.prediction(U[:, t])
+            self.prediction(U[1:, t])
+            self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t-1], self.mapLUT)
+            import pdb; pdb.set_trace()
             for j in range(Z.shape[1]):
                 if Z[0, j] == t:
                     self.update(Z[2:4, j], Z[1, j])
                     self.augmentState(Z[2:4, j], Z[1, j])
             self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t], self.mapLUT)
+            import pdb; pdb.set_trace()
 
 
