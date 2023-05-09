@@ -105,8 +105,12 @@ class EKFSLAM(object):
             id : The ID of the observed landmark (int)
         """
         # TODO: Your code goes here
+        id = str(int(id))
+        if id not in self.mapLUT.keys():
+            return
+        pos = self.mapLUT[id]
 
-        # # Compute Jacobian of measurement model
+        # Compute Jacobian of measurement model
         H = np.zeros((2, 3))
         H[0, 0] = -np.cos(self.mu[2])
         H[0, 1] = -np.sin(self.mu[2])
@@ -120,12 +124,31 @@ class EKFSLAM(object):
 
         # Update the mean
         h_mu = np.zeros(2)
-        h_mu[0] = np.cos(self.mu[2]) * (z[0] - self.mu[0]) + np.sin(self.mu[2]) * (z[1] - self.mu[1])
-        h_mu[1] = -np.sin(self.mu[2]) * (z[0] - self.mu[0]) + np.cos(self.mu[2]) * (z[1] - self.mu[1])
+        h_mu[0] = np.cos(self.mu[2]) * (self.mu[pos] - self.mu[0]) + np.sin(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
+        h_mu[1] = -np.sin(self.mu[2]) * (self.mu[pos] - self.mu[0]) + np.cos(self.mu[2]) * (self.mu[pos + 1] - self.mu[1])
         self.mu[0:3] = self.mu[0:3] + K @ (z - h_mu)
 
         # Update the covariance
         self.Sigma[0:3, 0:3] = (np.eye(3) - K @ H) @ self.Sigma[0:3, 0:3]
+
+        # H = np.zeros((2, self.mu.shape[0]))
+        # H[0, 0] = -np.cos(self.mu[2])
+        # H[0, 1] = -np.sin(self.mu[2])
+        # H[0, 2] = -np.sin(self.mu[2]) * (z[0] - self.mu[0]) + np.cos(self.mu[2])*(z[1] - self.mu[1])
+        # H[0, midx] = np.cos(self.mu[2])
+        # H[0, midx + 1] = np.sin(self.mu[2])
+
+        # H[1, 0] = np.sin(self.mu[2])
+        # H[1, 1] = -np.cos(self.mu[2])
+        # H[1, 2] = -np.cos(self.mu[2]) * (z[0] - self.mu[0]) - np.sin(self.mu[2])*(z[1] - self.mu[1])
+        # H[1, midx] = -np.sin(self.mu[2])
+        # H[1, midx] = np.cos(self.mu[2])
+
+        # K = self.Sigma@H.transpose()@np.linalg.inv(H@self.Sigma@H.transpose() + self.Q)
+        # rotation_mat = np.matrix([[np.cos(self.mu[2]), np.sin(self.mu[2])], [-np.sin(self.mu[2]), np.cos(self.mu[2])]])
+        # z_pred = np.asarray(rotation_mat@(self.mu[midx:midx+2] - self.mu[0:2])).reshape(-1)
+        # self.mu = self.mu + K@(z - z_pred)
+        # self.Sigma = (np.eye( self.mu.shape[0]) - K@H)@self.Sigma
 
 
     def augmentState(self, z, id):
@@ -141,16 +164,17 @@ class EKFSLAM(object):
         # TODO: Your code goes here
 
         # Check if the landmark has already been added
-        if id in self.mapLUT.items():
+        id = str(int(id))
+        if id in self.mapLUT.keys():
             return
 
-        # Add the landmark to LUT
+        # # Add the landmark to LUT
         mu_length = int(self.mu.shape[0])
-        self.mapLUT[str(int(id))] = mu_length
+        self.mapLUT[id] = mu_length
 
         # Compute the landmark position in the world frame
         x = self.mu[0] + z[0] * np.cos(self.mu[2]) - z[1] * np.sin(self.mu[2])
-        y = self.mu[1] - z[0] * np.sin(self.mu[2]) - z[1] * np.cos(self.mu[2])
+        y = self.mu[1] + z[0] * np.sin(self.mu[2]) + z[1] * np.cos(self.mu[2])
 
         # Augment the mean
         self.mu = np.append(self.mu, np.array((x, y)))
@@ -170,8 +194,6 @@ class EKFSLAM(object):
         newSigma[-2:, :-2] = G @ self.Sigma
         newSigma[:-2, -2:] = self.Sigma @ G.T
         self.Sigma = newSigma
-
-
 
     def angleWrap(self, theta):
         """Ensure that a given angle is in the interval (-pi, pi)."""
@@ -207,12 +229,12 @@ class EKFSLAM(object):
         for t in range(U.shape[1]):
             self.prediction(U[1:, t])
             self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t-1], self.mapLUT)
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             for j in range(Z.shape[1]):
                 if Z[0, j] == t:
                     self.update(Z[2:4, j], Z[1, j])
                     self.augmentState(Z[2:4, j], Z[1, j])
             self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t], self.mapLUT)
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
 
 
