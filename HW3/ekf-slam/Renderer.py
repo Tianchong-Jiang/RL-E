@@ -377,7 +377,7 @@ class Renderer(object):
         else:
             self.updateTriangle(self.gtTriangle, gt[0:2], gt[2])
 
-
+        # import pdb; pdb.set_trace()
         if not self.ellipse:
             self.ellipse = self.drawEllipse(mu[0:2], Sigma[0:2, 0:2])
             self.ax.add_patch(self.ellipse)

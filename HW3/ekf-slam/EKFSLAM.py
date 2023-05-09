@@ -38,7 +38,7 @@ class EKFSLAM(object):
         """
         self.mu = mu
         self.Sigma = Sigma
-        self.R = R
+        self.R = np.asarray([[R[0,0], 0, 0], [0, R[0, 0], 0], [0, 0, R[1, 1]]])
         self.Q = Q
 
         self.XGT = XGT
@@ -84,17 +84,14 @@ class EKFSLAM(object):
         self.mu[2] = self.angleWrap(self.mu[2] + u[1])
 
         # Compute Jacobian of motion model
-        F = np.zeros((2, 3))
-        F[0, 0] = 1
+        F = np.eye(3)
         F[0, 2] = -u[0] * np.sin(self.mu[2])
-        F[1, 1] = 1
         F[1, 2] = u[0] * np.cos(self.mu[2])
 
         # Predict the covariance
-        import pdb; pdb.set_trace()
-        self.Sigma[0:2, 0:2] = F @ self.Sigma[0:3, 0:3] @ F.T + self.R
-        self.Sigma[0:2, 2:] = F @ self.Sigma[0:3, 3:]
-        self.Sigma[2:, 0:2] = self.Sigma[0:3, 3:] @ F.T
+        self.Sigma[0:3, 0:3] = F @ self.Sigma[0:3, 0:3] @ F.T + self.R
+        self.Sigma[0:3, 3:] = F @ self.Sigma[0:3, 3:]
+        self.Sigma[3:, 0:3] = self.Sigma[3:, 0:3] @ F.T
 
     def update(self, z, id):
         """Perform the measurement update step to compute the posterior
@@ -119,10 +116,13 @@ class EKFSLAM(object):
         H[1, 2] = z[0] * np.cos(self.mu[2]) + z[1] * np.sin(self.mu[2])
 
         # Compute Kalman gain
-        K = self.Sigma[0:3, 0:3] @ H.T  @ np.linalg.inv(self.H @ self.Sigma[0:3, 0:3] @ H.T + self.Q)
+        K = self.Sigma[0:3, 0:3] @ H.T  @ np.linalg.inv(H @ self.Sigma[0:3, 0:3] @ H.T + self.Q)
 
         # Update the mean
-        self.mu[0:3] = self.mu[0:3] + K @ (z - self.mu[0:3])
+        h_mu = np.zeros(2)
+        h_mu[0] = np.cos(self.mu[2]) * (z[0] - self.mu[0]) + np.sin(self.mu[2]) * (z[1] - self.mu[1])
+        h_mu[1] = -np.sin(self.mu[2]) * (z[0] - self.mu[0]) + np.cos(self.mu[2]) * (z[1] - self.mu[1])
+        self.mu[0:3] = self.mu[0:3] + K @ (z - h_mu)
 
         # Update the covariance
         self.Sigma[0:3, 0:3] = (np.eye(3) - K @ H) @ self.Sigma[0:3, 0:3]
@@ -145,7 +145,8 @@ class EKFSLAM(object):
             return
 
         # Add the landmark to LUT
-        self.mapLUT[id] = (self.mu.shape[0] - 1) * 0.5
+
+        self.mapLUT[str(int(id))] = (self.mu.shape[0] - 1) * 0.5
 
         # Compute the landmark position in the world frame
         x = self.mu[0] + z[0] * np.cos(self.mu[2]) - z[1] * np.sin(self.mu[2])
@@ -159,9 +160,13 @@ class EKFSLAM(object):
                         [0, 1, z[0] * - np.cos(self.mu[2]) + z[1] * np.sin(self.mu[2])]])
 
         # Augment the covariance
-        self.Sigma[0:3, 3:] = G @ self.Sigma[0:3, 3:]
-        self.Sigma[3:, 0:3] = self.Sigma[0:3, 3:] @ G.T
-        self.Sigma[3:, 3:] = G @ self.Sigma[3:, 3:] @ G.T + self.Q
+        length = self.Sigma.shape[0]
+        newSigma = np.zeros((length + 2, length + 2))
+        newSigma[:-2, :-2] = self.Sigma
+        newSigma[-2:, -2:] = G @ self.Sigma @ G.T + self.Q
+        newSigma[-2:, :-2] = G @ self.Sigma
+        newSigma[:-2, -2:] = self.Sigma @ G.T
+
 
 
     def angleWrap(self, theta):
@@ -195,10 +200,12 @@ class EKFSLAM(object):
         #
         # self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Zt, self.mapLUT)
 
-        for i in range(U.shape[1]):
-            self.prediction(U[:, i])
+        for t in range(U.shape[1]):
+            self.prediction(U[:, t])
             for j in range(Z.shape[1]):
-                if Z[0, j] == i:
+                if Z[0, j] == t:
                     self.update(Z[2:4, j], Z[1, j])
                     self.augmentState(Z[2:4, j], Z[1, j])
-            self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, i], Z[:, Z[0, :] == i], self.mapLUT)
+            self.renderer.render(self.mu, self.Sigma, self.XGT[1:4, t], Z[:, Z[0,:]==t], self.mapLUT)
+
+
