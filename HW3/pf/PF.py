@@ -273,8 +273,8 @@ class PF(object):
         self.weights = self.weights[indices]
 
         # Adding Gaussian noise to particles
-        self.particles[0, :] = self.particles[0, :] + np.random.normal(0, 0.1, self.numParticles)
-        self.particles[1, :] = self.particles[1, :] + np.random.normal(0, 0.1, self.numParticles)
+        self.particles[0, :] = self.particles[0, :] + np.random.normal(0, 0.01, self.numParticles)
+        self.particles[1, :] = self.particles[1, :] + np.random.normal(0, 0.01, self.numParticles)
 
     def update(self, ranges):
         """
