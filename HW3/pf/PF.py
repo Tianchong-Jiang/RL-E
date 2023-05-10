@@ -265,12 +265,17 @@ class PF(object):
         # TODO: Your code goes here
         # The np.random.choice function may be useful
 
-        # Resampling
-        indices = np.arange(0, self.particles.shape[-1])
-        indices = np.random.choice(indices, self.numParticles, p=self.weights / np.sum(self.weights))
+        # normalize weights
+        self.weights = self.weights / np.sum(self.weights)
 
-        self.particles = self.particles[:, indices]
-        self.weights = self.weights[indices]
+        if 1 / np.sum(self.weights ** 2) < 3 * self.numParticles / 2:
+
+            # Resampling
+            indices = np.arange(0, self.particles.shape[-1])
+            indices = np.random.choice(indices, self.numParticles, p=self.weights / np.sum(self.weights))
+
+            self.particles = self.particles[:, indices]
+            self.weights = self.weights[indices]
 
         # Adding Gaussian noise to particles
         self.particles[0, :] = self.particles[0, :] + np.random.normal(0, 0.01, self.numParticles)
@@ -328,4 +333,4 @@ class PF(object):
                 else:
                     self.render(ranges, deltat, XGT[:, k])
 
-        plt.savefig(filename, bbox_inches='tight')
+        plt.savefig(filename+"_threshold", bbox_inches='tight')
