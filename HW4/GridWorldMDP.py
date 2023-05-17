@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as pyplot
 from matplotlib.path import Path
 import matplotlib.patches as patches
-
+import pdb
 
 class GridWorldMDP(object):
     """A class for implementing a basic MDP solver for a simple gridworld
@@ -49,7 +49,7 @@ class GridWorldMDP(object):
 
         self.width = 5
         self.height = 5
-        self.numstates = self.width*self.height + 1  # +1 for the extra 
+        self.numstates = self.width*self.height + 1  # +1 for the extra
                                                      # absorbing state
         self.absorbing_states = [0, 1, 2, 3, 4, 12, 14]
         obstacles = [11, 13, 16]
@@ -333,15 +333,15 @@ class GridWorldMDP(object):
             ax.text((i+0.4)*size, (j+0.45)*size, v)
 
             if Pi[k] == 0:
-                ax.arrow ((i+0.5)*size, (j+0.6)*size, 0.0, 0.3*size, 
+                ax.arrow ((i+0.5)*size, (j+0.6)*size, 0.0, 0.3*size,
                           head_width=0.1*size, head_length=0.1*size, fc='k', ec='k')
 
             if Pi[k] == 1:
-                ax.arrow ((i+0.7)*size, (j+0.5)*size, 0.15*size, 0.0, 
+                ax.arrow ((i+0.7)*size, (j+0.5)*size, 0.15*size, 0.0,
                           head_width=0.1*size, head_length=0.1*size, fc='k', ec='k')
 
             if Pi[k] == 2:
-                ax.arrow ((i+0.5)*size, (j+0.4)*size, 0.0, -0.3*size, 
+                ax.arrow ((i+0.5)*size, (j+0.4)*size, 0.0, -0.3*size,
                           head_width=0.1*size, head_length=0.1*size, fc='k', ec='k')
 
             if Pi[k] == 3:
@@ -356,7 +356,7 @@ class GridWorldMDP(object):
 
             Args
             ----------
-            epsilon  : The threshold for the stopping criterion 
+            epsilon  : The threshold for the stopping criterion
                        (|Vnew - Vprev|_inf <= epsilon)
 
             Returns
@@ -375,5 +375,24 @@ class GridWorldMDP(object):
         n = 0  # Keep track of the number of iterations
 
         # INSERT YOUR CODE HERE (DON'T FORGET TO INCREMENT THE NUMBER OF ITERATIONS)
+
+        # Policy Iteration
+        while True:
+            V_prev = V.copy()
+            n=n+1
+            delta = 0
+            for s in range(self.numstates):
+                Vs_next = np.zeros(4)
+                for a in range(4):
+                    Vs_next[a] = Vs_next[a] + np.sum(np.array([self.T[s, sn,a]*(self.R[s, sn, a] + self.gamma*V[sn])\
+                                                  for sn in range(self.numstates)]))
+                V[s] = np.max(Vs_next)
+                Pi[s] = np.argmax(Vs_next)
+                delta = max(delta, abs(np.max(Vs_next) - V_prev[s]))
+
+            # self.drawWorld(V, Pi)
+            print(delta)
+            if delta < epsilon:
+                break
 
         return (V, Pi, n)
