@@ -390,7 +390,7 @@ class GridWorldMDP(object):
                 Pi[s] = np.argmax(Vs_next)
                 delta = max(delta, abs(np.max(Vs_next) - V_prev[s]))
 
-            # self.drawWorld(V, Pi)
+            self.drawWorld(V, Pi)
             print(delta)
             if delta < epsilon:
                 break
